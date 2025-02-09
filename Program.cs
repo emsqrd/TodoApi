@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Http.HttpResults;
 using TodoApi.Endpoints;
+using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<ITaskService, TaskService>();
+builder.Services.AddSingleton<TaskEndpoints>();
 
 builder.Services.AddCors(options =>
 {
@@ -26,10 +26,13 @@ var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.UseCors("AllowedOrigins");
-app.MapOpenApi();
+
+var apiGroup = app.MapGroup("/api");
+apiGroup.MapOpenApi();
+
+var taskEndpoints = app.Services.GetRequiredService<TaskEndpoints>();
+taskEndpoints.MapTaskEndpoints(apiGroup);
+
 app.UseHttpsRedirection();
-
-app.MapTaskEndpoints();
-
 app.Run();
 
