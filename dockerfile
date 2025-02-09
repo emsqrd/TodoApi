@@ -15,7 +15,7 @@ WORKDIR /app
 COPY --from=build /out ./
 
 # Expose port (not needed for Render, but good practice)
-EXPOSE 5000
+EXPOSE 10000
 
 # Run the app
 CMD ["dotnet", "TodoApi.dll"]
