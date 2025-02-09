@@ -6,34 +6,26 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.MapOpenApi();
 app.UseHttpsRedirection();
 
-var summaries = new[]
+
+var tasks = new[]
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    new { id = Guid.NewGuid(), name = "Walk the dog", dueDate = "2025-02-05" },
+    new { id = Guid.NewGuid(), name = "Read a book", dueDate = "2025-02-23" },
+    new { id = Guid.NewGuid(), name = "Take out the garbage", dueDate = "2025-02-05" },
+    new { id = Guid.NewGuid(), name = "Make dinner", dueDate = "2025-02-07" },
+    new { id = Guid.NewGuid(), name = "Do laundry", dueDate = "2025-02-13" }
 };
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+app.MapGet("/tasks", () => {
+    return tasks;
 })
-.WithName("GetWeatherForecast");
+.WithName("GetTasks");
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
