@@ -22,19 +22,27 @@ public class TaskEndpoints(ITaskService taskService)
     /// Maps all task-related endpoints to the application
     /// </summary>
     public void MapTaskEndpoints(IEndpointRouteBuilder app) 
-    {    
-        app.MapGet("/tasks", GetTasks)
-            .WithName("GetTasks")
-            .WithOpenApi()
-            .WithDescription("Gets all tasks")
-            .Produces<IEnumerable<TaskItem>>(StatusCodes.Status200OK);
-
+    {
         app.MapPost("/tasks", CreateTask)
             .WithName("CreateTask")
             .WithOpenApi()
             .WithDescription("Creates a new task")
             .Produces<TaskItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
+
+        app.MapGet("/tasks", GetTasks)
+            .WithName("GetTasks")
+            .WithOpenApi()
+            .WithDescription("Gets all tasks")
+            .Produces<IEnumerable<TaskItem>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest);
+
+        app.MapPut("/tasks/{id}", UpdateTask)
+            .WithName("UpdateTasks")
+            .WithOpenApi()
+            .WithDescription("Updates a task")
+            .Produces<TaskItem>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
         app.MapDelete("/tasks/{id}", DeleteTask)
             .WithName("DeleteTask")
@@ -43,21 +51,6 @@ public class TaskEndpoints(ITaskService taskService)
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
     }
-
-    private Results<Ok<IEnumerable<TaskItem>>, BadRequest> GetTasks() 
-    {
-        try
-        {
-            var results = _taskService.GetTasks();
-            return TypedResults.Ok(results);
-        }
-        catch (Exception ex)
-        {
-            // Consider logging the exception here
-            return TypedResults.BadRequest();
-        }
-    }
-
     private Results<Created<TaskItem>, ValidationProblem> CreateTask(TaskItem task) 
     {
         if (task == null)
@@ -78,6 +71,26 @@ public class TaskEndpoints(ITaskService taskService)
 
         var result = _taskService.CreateTask(task);
         return TypedResults.Created($"/tasks/{result.Id}", result);
+    }
+
+    private Results<Ok<IEnumerable<TaskItem>>, BadRequest> GetTasks() 
+    {
+        try
+        {
+            var results = _taskService.GetTasks();
+            return TypedResults.Ok(results);
+        }
+        catch (Exception ex)
+        {
+            // Consider logging the exception here
+            return TypedResults.BadRequest();
+        }
+    }
+
+    private Results<Ok<TaskItem>, NotFound> UpdateTask(TaskItem task)
+    {
+        var result = _taskService.UpdateTask(task);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
     }
 
     private Results<NoContent, NotFound> DeleteTask(Guid id) 

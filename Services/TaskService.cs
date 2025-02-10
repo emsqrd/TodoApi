@@ -6,6 +6,7 @@ public interface ITaskService
 {
     IEnumerable<TaskItem> GetTasks();
     TaskItem CreateTask(TaskItem task);
+    TaskItem UpdateTask(TaskItem task);
     bool DeleteTask(Guid id);
 }
 
@@ -36,6 +37,23 @@ public sealed class TaskService : ITaskService
     }
 
     public IEnumerable<TaskItem> GetTasks() => _tasks;
+
+    public TaskItem UpdateTask(TaskItem task)
+    {
+        ArgumentNullException.ThrowIfNull(task);
+        var index = _tasks.FindIndex(x => x.Id == task.Id);
+        if (index == -1)
+            throw new KeyNotFoundException("Task not found");
+
+        var updatedTask = new TaskItem
+        {
+            Id = task.Id,
+            Name = task.Name,
+            DueDate = task.DueDate
+        };
+        _tasks[index] = updatedTask;
+        return updatedTask;
+    }
 
     public bool DeleteTask(Guid id) 
     {
