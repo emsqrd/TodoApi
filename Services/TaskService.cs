@@ -6,6 +6,7 @@ namespace TodoApi.Services;
 public interface ITaskService {
   IEnumerable<TaskItem> GetTasks();
   TaskItem CreateTask(TaskItem task);
+  bool DeleteTask(Guid id);
 }
 
 public class TaskService : ITaskService
@@ -35,5 +36,16 @@ public class TaskService : ITaskService
     public IEnumerable<TaskItem> GetTasks()
     {
         return _tasks;
+    }
+
+    public bool DeleteTask(Guid id) 
+    {
+        var taskToDelete = _tasks.FirstOrDefault(task => task.Id == id);
+        if (taskToDelete == null) 
+        {
+            return false;
+        }
+
+        return _tasks.Remove(taskToDelete);
     }
 }

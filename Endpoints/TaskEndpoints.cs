@@ -17,6 +17,10 @@ public class TaskEndpoints(ITaskService taskService)
         app.MapPost("/tasks", CreateTask)
             .WithName("CreateTask")
             .WithOpenApi();
+
+        app.MapDelete("/tasks/{id}", DeleteTask)
+            .WithName("DeleteTask")
+            .WithOpenApi();
     }
 
     private Ok<IEnumerable<TaskItem>> GetTasks() 
@@ -29,5 +33,11 @@ public class TaskEndpoints(ITaskService taskService)
     {
         var result = _taskService.CreateTask(task);
         return TypedResults.Ok(result);
+    }
+
+    private IResult DeleteTask(Guid id) 
+    {
+        var result = _taskService.DeleteTask(id);
+        return result ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 }
