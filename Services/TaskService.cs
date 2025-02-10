@@ -1,15 +1,15 @@
-using System;
 using TodoApi.Models;
 
 namespace TodoApi.Services;
 
-public interface ITaskService {
-  IEnumerable<TaskItem> GetTasks();
-  TaskItem CreateTask(TaskItem task);
-  bool DeleteTask(Guid id);
+public interface ITaskService 
+{
+    IEnumerable<TaskItem> GetTasks();
+    TaskItem CreateTask(TaskItem task);
+    bool DeleteTask(Guid id);
 }
 
-public class TaskService : ITaskService
+public sealed class TaskService : ITaskService
 {    
     private readonly List<TaskItem> _tasks =
     [
@@ -22,30 +22,27 @@ public class TaskService : ITaskService
 
     public TaskItem CreateTask(TaskItem task)
     {
-        var newTask = new TaskItem {
+        ArgumentNullException.ThrowIfNull(task);
+        
+        var newTask = new TaskItem
+        {
             Id = Guid.NewGuid(),
             Name = task.Name,
-            DueDate = task.DueDate,
+            DueDate = task.DueDate
         };
 
         _tasks.Add(newTask);
-
         return newTask;
     }
 
-    public IEnumerable<TaskItem> GetTasks()
-    {
-        return _tasks;
-    }
+    public IEnumerable<TaskItem> GetTasks() => _tasks;
 
     public bool DeleteTask(Guid id) 
     {
         var taskToDelete = _tasks.FirstOrDefault(task => task.Id == id);
-        if (taskToDelete == null) 
-        {
+        if (taskToDelete is null)
             return false;
-        }
-
+            
         return _tasks.Remove(taskToDelete);
     }
 }

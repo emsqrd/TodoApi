@@ -1,9 +1,8 @@
-using System;
-
 namespace TodoApi.Models;
 
-public class TaskItem {
-  public Guid Id {get; set;}
-  public string? Name { get; set; }
-  public DateTime DueDate { get; set; }
+public sealed class TaskItem
+{
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required DateTime DueDate { get; init; }
 }
