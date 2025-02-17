@@ -12,15 +12,8 @@ public interface ITaskService
 
 public sealed class TaskService : ITaskService
 {    
-    private readonly List<TaskItem> _tasks =
-    [
-        new() { Id = Guid.NewGuid(), Name = "Walk the dog", DueDate = DateTime.Parse("2025-02-05") },
-        new() { Id = Guid.NewGuid(), Name = "Read a book", DueDate = DateTime.Parse("2025-02-23") },
-        new() { Id = Guid.NewGuid(), Name = "Take out the garbage", DueDate = DateTime.Parse("2025-02-05") },
-        new() { Id = Guid.NewGuid(), Name = "Make dinner", DueDate = DateTime.Parse("2025-02-07") },
-        new() { Id = Guid.NewGuid(), Name = "Do laundry", DueDate = DateTime.Parse("2025-02-13") }
-    ];
-
+    private readonly List<TaskItem> _tasks = [];
+    
     public TaskItem CreateTask(TaskItem task)
     {
         ArgumentNullException.ThrowIfNull(task);
@@ -29,7 +22,7 @@ public sealed class TaskService : ITaskService
         {
             Id = Guid.NewGuid(),
             Name = task.Name,
-            DueDate = task.DueDate
+            DueDate = task.DueDate?.ToUniversalTime(),
         };
 
         _tasks.Add(newTask);
@@ -49,7 +42,7 @@ public sealed class TaskService : ITaskService
         {
             Id = task.Id,
             Name = task.Name,
-            DueDate = task.DueDate
+            DueDate = task.DueDate?.ToUniversalTime()
         };
         _tasks[index] = updatedTask;
         return updatedTask;
