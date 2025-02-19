@@ -22,8 +22,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
-app.Urls.Add($"http://0.0.0.0:{port}");
+// var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
+// app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.UseCors("AllowedOrigins");
 
