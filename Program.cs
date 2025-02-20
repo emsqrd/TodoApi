@@ -1,11 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using TodoApi.Data;
 using TodoApi.Endpoints;
 using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-builder.Services.AddSingleton<ITaskService, TaskService>();
-builder.Services.AddSingleton<TaskEndpoints>();
+builder.Services.AddEndpointsApiExplorer();
+
+// Ensure DbContext and services are registered as scoped
+builder.Services.AddDbContext<TodoDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 builder.Services.AddCors(options =>
 {
@@ -22,16 +28,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
-// app.Urls.Add($"http://0.0.0.0:{port}");
-
 app.UseCors("AllowedOrigins");
 
-var apiGroup = app.MapGroup("/api");
-apiGroup.MapOpenApi();
+app.MapGroup("/api")
+.MapTaskEndpoints()
+.MapOpenApi();
 
-var taskEndpoints = app.Services.GetRequiredService<TaskEndpoints>();
-taskEndpoints.MapTaskEndpoints(apiGroup);
 
 app.UseHttpsRedirection();
 app.Run();

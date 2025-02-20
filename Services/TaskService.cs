@@ -1,3 +1,4 @@
+using TodoApi.Data;
 using TodoApi.Models;
 
 namespace TodoApi.Services;
@@ -5,7 +6,7 @@ namespace TodoApi.Services;
 public interface ITaskService 
 {
     IEnumerable<TaskItem> GetTasks();
-    TaskItem CreateTask(TaskItem task);
+    Task<TaskItem> CreateTaskAsync(TaskItem task);
     TaskItem UpdateTask(TaskItem task);
     bool DeleteTask(Guid id);
 }
@@ -13,23 +14,28 @@ public interface ITaskService
 public sealed class TaskService : ITaskService
 {    
     private readonly List<TaskItem> _tasks = [];
+    private readonly TodoDbContext _dbContext;
+
+    public TaskService(TodoDbContext dbContext) {
+        _dbContext = dbContext;
+    }
     
-    public TaskItem CreateTask(TaskItem task)
+    public async Task<TaskItem> CreateTaskAsync(TaskItem task)
     {
         ArgumentNullException.ThrowIfNull(task);
         
         var newTask = new TaskItem
         {
-            Id = Guid.NewGuid(),
             Name = task.Name,
             DueDate = task.DueDate?.ToUniversalTime(),
         };
 
-        _tasks.Add(newTask);
+        _dbContext.Tasks.Add(newTask);
+        await _dbContext.SaveChangesAsync();
         return newTask;
     }
 
-    public IEnumerable<TaskItem> GetTasks() => _tasks;
+    public IEnumerable<TaskItem> GetTasks() => _dbContext.Tasks.ToList();
 
     public TaskItem UpdateTask(TaskItem task)
     {
@@ -40,7 +46,6 @@ public sealed class TaskService : ITaskService
 
         var updatedTask = new TaskItem
         {
-            Id = task.Id,
             Name = task.Name,
             DueDate = task.DueDate?.ToUniversalTime()
         };
