@@ -30,6 +30,14 @@ var app = builder.Build();
 
 app.UseCors("AllowedOrigins");
 
+// Apply latest migrations to the database on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<TodoDbContext>();
+    dbContext.Database.Migrate();
+}
+
+
 app.MapGroup("/api")
 .MapTaskEndpoints()
 .MapOpenApi();

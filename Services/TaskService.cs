@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TodoApi.Data;
 using TodoApi.Models;
 
@@ -5,15 +6,14 @@ namespace TodoApi.Services;
 
 public interface ITaskService 
 {
-    IEnumerable<TaskItem> GetTasks();
+    Task<IEnumerable<TaskItem>> GetTasksAsync();
     Task<TaskItem> CreateTaskAsync(TaskItem task);
-    TaskItem UpdateTask(TaskItem task);
-    bool DeleteTask(Guid id);
+    Task<TaskItem> UpdateTaskAsync(TaskItem task);
+    Task<bool> DeleteTaskAsync(Guid id);
 }
 
 public sealed class TaskService : ITaskService
 {    
-    private readonly List<TaskItem> _tasks = [];
     private readonly TodoDbContext _dbContext;
 
     public TaskService(TodoDbContext dbContext) {
@@ -22,7 +22,7 @@ public sealed class TaskService : ITaskService
     
     public async Task<TaskItem> CreateTaskAsync(TaskItem task)
     {
-        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(task, nameof(task));
         
         var newTask = new TaskItem
         {
@@ -30,35 +30,34 @@ public sealed class TaskService : ITaskService
             DueDate = task.DueDate?.ToUniversalTime(),
         };
 
-        _dbContext.Tasks.Add(newTask);
+        await _dbContext.Tasks.AddAsync(newTask);
         await _dbContext.SaveChangesAsync();
         return newTask;
     }
 
-    public IEnumerable<TaskItem> GetTasks() => _dbContext.Tasks.ToList();
+    public async Task<IEnumerable<TaskItem>> GetTasksAsync() => await _dbContext.Tasks.ToListAsync();
 
-    public TaskItem UpdateTask(TaskItem task)
+    public async Task<TaskItem> UpdateTaskAsync(TaskItem task)
     {
         ArgumentNullException.ThrowIfNull(task);
-        var index = _tasks.FindIndex(x => x.Id == task.Id);
-        if (index == -1)
+
+        var existingTask = await _dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == task.Id);
+        if (existingTask is null)
             throw new KeyNotFoundException("Task not found");
 
-        var updatedTask = new TaskItem
-        {
-            Name = task.Name,
-            DueDate = task.DueDate?.ToUniversalTime()
-        };
-        _tasks[index] = updatedTask;
-        return updatedTask;
+        existingTask.Name = task.Name;
+        existingTask.DueDate = task.DueDate?.ToUniversalTime();
+        
+        await _dbContext.SaveChangesAsync();
+        return existingTask;
     }
 
-    public bool DeleteTask(Guid id) 
+    public async Task<bool> DeleteTaskAsync(Guid id) 
     {
-        var taskToDelete = _tasks.FirstOrDefault(task => task.Id == id);
+        var taskToDelete = await _dbContext.Tasks.FirstOrDefaultAsync(task => task.Id == id);
         if (taskToDelete is null)
             return false;
             
-        return _tasks.Remove(taskToDelete);
+        return _dbContext.Tasks.Remove(taskToDelete) is not null;
     }
 }
