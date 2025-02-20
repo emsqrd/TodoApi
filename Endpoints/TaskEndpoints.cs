@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.HttpResults;
 using TodoApi.Models;
 using TodoApi.Services;
@@ -21,37 +22,37 @@ public static class TaskEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app) 
     {
-        app.MapPost("/tasks", CreateTask)
+        app.MapPost("/tasks", CreateTaskAsync)
             .WithName("CreateTask")
             .WithOpenApi()
             .WithDescription("Creates a new task")
             .Produces<TaskItem>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
 
-        // app.MapGet("/tasks", GetTasks)
-        //     .WithName("GetTasks")
-        //     .WithOpenApi()
-        //     .WithDescription("Gets all tasks")
-        //     .Produces<IEnumerable<TaskItem>>(StatusCodes.Status200OK)
-        //     .Produces(StatusCodes.Status400BadRequest);
+        app.MapGet("/tasks", GetTasksAsync)
+            .WithName("GetTasks")
+            .WithOpenApi()
+            .WithDescription("Gets all tasks")
+            .Produces<IEnumerable<TaskItem>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest);
 
-        // app.MapPut("/tasks/{id}", UpdateTask)
-        //     .WithName("UpdateTasks")
-        //     .WithOpenApi()
-        //     .WithDescription("Updates a task")
-        //     .Produces<TaskItem>(StatusCodes.Status200OK)
-        //     .Produces(StatusCodes.Status404NotFound);
+        app.MapPut("/tasks/{id}", UpdateTaskAsync)
+            .WithName("UpdateTasks")
+            .WithOpenApi()
+            .WithDescription("Updates a task")
+            .Produces<TaskItem>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
-        // app.MapDelete("/tasks/{id}", DeleteTask)
-        //     .WithName("DeleteTask")
-        //     .WithOpenApi()
-        //     .WithDescription("Deletes a task by ID")
-        //     .Produces(StatusCodes.Status204NoContent)
-        //     .Produces(StatusCodes.Status404NotFound);
+        app.MapDelete("/tasks/{id}", DeleteTaskAsync)
+            .WithName("DeleteTask")
+            .WithOpenApi()
+            .WithDescription("Deletes a task by ID")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
 
         return app;
     }
-    private static async Task<Results<Created<TaskItem>, ValidationProblem>> CreateTask(TaskItem task, ITaskService taskService) 
+    private static async Task<Results<Created<TaskItem>, ValidationProblem>> CreateTaskAsync(TaskItem task, ITaskService taskService) 
     {
         if (task == null)
         {
@@ -73,34 +74,39 @@ public static class TaskEndpoints
         return TypedResults.Created($"/tasks/{result.Id}", result);
     }
 
-    // private Results<Ok<IEnumerable<TaskItem>>, BadRequest> GetTasks() 
-    // {
-    //     try
-    //     {
-    //         var results = _taskService.GetTasks();
-    //         return TypedResults.Ok(results);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         // Consider logging the exception here
-    //         return TypedResults.BadRequest();
-    //     }
-    // }
+    private static async Task<Results<Ok<IEnumerable<TaskItem>>, BadRequest>> GetTasksAsync(ITaskService taskService) 
+    {
+        try
+        {
+            var results = await taskService.GetTasksAsync();
+            return TypedResults.Ok(results);
+        }
+        catch (Exception ex)
+        {
+            // Consider logging the exception here
+            return TypedResults.BadRequest();
+        }
+    }
 
-    // private Results<Ok<TaskItem>, NotFound> UpdateTask(TaskItem task)
-    // {
-    //     var result = _taskService.UpdateTask(task);
-    //     return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
-    // }
+    private static async Task<Results<Ok<TaskItem>, NotFound>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
+    {   
+        if (id != task.Id)
+        {
+            task.Id = id;
+        }
 
-    // private Results<NoContent, NotFound> DeleteTask(Guid id) 
-    // {
-    //     if (id == Guid.Empty)
-    //     {
-    //         return TypedResults.NotFound();
-    //     }
+        var result = await taskService.UpdateTaskAsync(task);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
+    }
 
-    //     var result = _taskService.DeleteTask(id);
-    //     return result ? TypedResults.NoContent() : TypedResults.NotFound();
-    // }
+    private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService) 
+    {
+        if (id == Guid.Empty)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = await taskService.DeleteTaskAsync(id);
+        return result ? TypedResults.NoContent() : TypedResults.NotFound();
+    }
 }

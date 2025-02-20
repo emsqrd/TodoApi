@@ -58,6 +58,8 @@ public sealed class TaskService : ITaskService
         if (taskToDelete is null)
             return false;
             
-        return _dbContext.Tasks.Remove(taskToDelete) is not null;
+        _dbContext.Tasks.Remove(taskToDelete);
+        await _dbContext.SaveChangesAsync();
+        return true;
     }
 }
