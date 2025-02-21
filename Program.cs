@@ -5,6 +5,8 @@ using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 builder.Services.AddEndpointsApiExplorer();
 
 // Ensure DbContext and services are registered as scoped

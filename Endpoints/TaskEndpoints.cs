@@ -88,15 +88,22 @@ public static class TaskEndpoints
         }
     }
 
-    private static async Task<Results<Ok<TaskItem>, NotFound>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
+    private static async Task<Results<Ok<TaskItem>, NotFound<object>>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
     {   
         if (id != task.Id)
         {
             task.Id = id;
         }
-
-        var result = await taskService.UpdateTaskAsync(task);
-        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
+        
+        try 
+        {
+            var result = await taskService.UpdateTaskAsync(task);
+            return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound((object)new { error = "Task not found"});
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return TypedResults.NotFound((object)new { error = ex.Message });
+        }
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService) 

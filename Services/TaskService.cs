@@ -15,9 +15,11 @@ public interface ITaskService
 public sealed class TaskService : ITaskService
 {    
     private readonly TodoDbContext _dbContext;
+    private readonly ILogger<TaskService> _logger;
 
-    public TaskService(TodoDbContext dbContext) {
-        _dbContext = dbContext;
+    public TaskService(TodoDbContext dbContext, ILogger<TaskService> logger) {
+        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
     public async Task<TaskItem> CreateTaskAsync(TaskItem task)
@@ -42,8 +44,11 @@ public sealed class TaskService : ITaskService
         ArgumentNullException.ThrowIfNull(task);
 
         var existingTask = await _dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == task.Id);
-        if (existingTask is null)
+        if (existingTask is null) 
+        {
+            _logger.LogWarning("Task not found");
             throw new KeyNotFoundException("Task not found");
+        }
 
         existingTask.Name = task.Name;
         existingTask.DueDate = task.DueDate?.ToUniversalTime();
