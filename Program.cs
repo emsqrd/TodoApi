@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data;
 using TodoApi.Endpoints;
+using TodoApi.Exceptions;
 using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Ensure DbContext and services are registered as scoped
 builder.Services.AddDbContext<TodoDbContext>(options =>
@@ -31,6 +35,19 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("AllowedOrigins");
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandler = context.RequestServices.GetRequiredService<IExceptionHandler>();
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        if (exceptionFeature != null)
+        {
+            await exceptionHandler.TryHandleAsync(context, exceptionFeature.Error, context.RequestAborted);
+        }
+    });
+});
 
 // Apply latest migrations to the database on startup
 using (var scope = app.Services.CreateScope())

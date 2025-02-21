@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.HttpResults;
 using TodoApi.Models;
 using TodoApi.Services;
@@ -94,16 +93,10 @@ public static class TaskEndpoints
         {
             task.Id = id;
         }
-        
-        try 
-        {
-            var result = await taskService.UpdateTaskAsync(task);
-            return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound((object)new { error = "Task not found"});
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return TypedResults.NotFound((object)new { error = ex.Message });
-        }
+
+        var result = await taskService.UpdateTaskAsync(task);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound((object)new { error = "Task not found"});
+
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService) 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data;
+using TodoApi.Exceptions;
 using TodoApi.Models;
 
 namespace TodoApi.Services;
@@ -47,7 +48,7 @@ public sealed class TaskService : ITaskService
         if (existingTask is null) 
         {
             _logger.LogWarning("Task not found");
-            throw new KeyNotFoundException("Task not found");
+            throw new TaskDoesNotExistException(task.Id);
         }
 
         existingTask.Name = task.Name;
