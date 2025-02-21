@@ -42,12 +42,12 @@ public sealed class TaskService : ITaskService
 
     public async Task<TaskItem> UpdateTaskAsync(TaskItem task)
     {
-        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(task, nameof(task));
 
         var existingTask = await _dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == task.Id);
         if (existingTask is null) 
         {
-            _logger.LogWarning("Task not found");
+            _logger.LogWarning("Task with id {TaskId} not found", task.Id);
             throw new TaskDoesNotExistException(task.Id);
         }
 
@@ -62,7 +62,10 @@ public sealed class TaskService : ITaskService
     {
         var taskToDelete = await _dbContext.Tasks.FirstOrDefaultAsync(task => task.Id == id);
         if (taskToDelete is null)
-            return false;
+        {
+            _logger.LogWarning("Task with id {TaskId} not found", id);
+            throw new TaskDoesNotExistException(id);
+        }
             
         _dbContext.Tasks.Remove(taskToDelete);
         await _dbContext.SaveChangesAsync();

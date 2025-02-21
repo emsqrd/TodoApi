@@ -75,16 +75,8 @@ public static class TaskEndpoints
 
     private static async Task<Results<Ok<IEnumerable<TaskItem>>, BadRequest>> GetTasksAsync(ITaskService taskService) 
     {
-        try
-        {
-            var results = await taskService.GetTasksAsync();
-            return TypedResults.Ok(results);
-        }
-        catch (Exception ex)
-        {
-            // Consider logging the exception here
-            return TypedResults.BadRequest();
-        }
+        var results = await taskService.GetTasksAsync();
+        return TypedResults.Ok(results);
     }
 
     private static async Task<Results<Ok<TaskItem>, NotFound<object>>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
