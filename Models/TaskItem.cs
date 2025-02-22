@@ -2,7 +2,12 @@ namespace TodoApi.Models;
 
 public sealed class TaskItem
 {
-    public Guid Id { get; init; }
-    public required string Name { get; init; }
-    public DateTimeOffset? DueDate { get; init; }
+    public TaskItem()
+    {
+        Id = Guid.NewGuid();
+    }
+    
+    public Guid Id { get; set; }
+    public required string Name { get; set; }
+    public DateTimeOffset? DueDate { get; set; }
 }

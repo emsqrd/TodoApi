@@ -1,37 +1,44 @@
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using TodoApi.Data;
 using TodoApi.Endpoints;
-using TodoApi.Services;
+using TodoApi.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-builder.Services.AddSingleton<ITaskService, TaskService>();
-builder.Services.AddSingleton<TaskEndpoints>();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
-builder.Services.AddCors(options =>
-{
-    var allowedOrigins = builder.Configuration.GetSection("CorsOrigins").Get<string[]>() ?? [];
-    
-    options.AddPolicy("AllowedOrigins",
-        policy =>
-        {
-            policy.WithOrigins(allowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        });
-});
+builder.AddApplicationServices();
 
 var app = builder.Build();
 
-// var port = Environment.GetEnvironmentVariable("PORT") ?? "5080";
-// app.Urls.Add($"http://0.0.0.0:{port}");
-
 app.UseCors("AllowedOrigins");
 
-var apiGroup = app.MapGroup("/api");
-apiGroup.MapOpenApi();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandler = context.RequestServices.GetRequiredService<IExceptionHandler>();
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        if (exceptionFeature != null)
+        {
+            await exceptionHandler.TryHandleAsync(context, exceptionFeature.Error, context.RequestAborted);
+        }
+    });
+});
 
-var taskEndpoints = app.Services.GetRequiredService<TaskEndpoints>();
-taskEndpoints.MapTaskEndpoints(apiGroup);
+// Apply latest migrations to the database on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<TodoDbContext>();
+    dbContext.Database.Migrate();
+}
+
+app.MapGroup("/api")
+.MapTaskEndpoints()
+.MapOpenApi();
+
 
 app.UseHttpsRedirection();
 app.Run();
