@@ -5,7 +5,7 @@ using TodoApi.Models;
 
 namespace TodoApi.Services;
 
-public interface ITaskService 
+public interface ITaskService
 {
     Task<IEnumerable<TaskItem>> GetTasksAsync();
     Task<TaskItem> CreateTaskAsync(TaskItem task);
@@ -14,23 +14,27 @@ public interface ITaskService
 }
 
 public sealed class TaskService : ITaskService
-{    
+{
     private readonly TodoDbContext _dbContext;
     private readonly ILogger<TaskService> _logger;
 
-    public TaskService(TodoDbContext dbContext, ILogger<TaskService> logger) {
+    public TaskService(TodoDbContext dbContext, ILogger<TaskService> logger)
+    {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-    
+
     public async Task<TaskItem> CreateTaskAsync(TaskItem task)
     {
         ArgumentNullException.ThrowIfNull(task, nameof(task));
-        
+
         var newTask = new TaskItem
         {
             Name = task.Name,
+            Description = task.Description,
             DueDate = task.DueDate?.ToUniversalTime(),
+            CreateDate = DateTimeOffset.UtcNow,
+            UpdateDate = DateTimeOffset.UtcNow,
         };
 
         await _dbContext.Tasks.AddAsync(newTask);
@@ -45,20 +49,22 @@ public sealed class TaskService : ITaskService
         ArgumentNullException.ThrowIfNull(task, nameof(task));
 
         var existingTask = await _dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == task.Id);
-        if (existingTask is null) 
+        if (existingTask is null)
         {
             _logger.LogWarning("Task with id {TaskId} not found", task.Id);
             throw new TaskDoesNotExistException(task.Id);
         }
 
         existingTask.Name = task.Name;
+        existingTask.Description = task.Description;
         existingTask.DueDate = task.DueDate?.ToUniversalTime();
-        
+        existingTask.UpdateDate = DateTimeOffset.UtcNow;
+
         await _dbContext.SaveChangesAsync();
         return existingTask;
     }
 
-    public async Task<bool> DeleteTaskAsync(Guid id) 
+    public async Task<bool> DeleteTaskAsync(Guid id)
     {
         var taskToDelete = await _dbContext.Tasks.FirstOrDefaultAsync(task => task.Id == id);
         if (taskToDelete is null)
@@ -66,7 +72,7 @@ public sealed class TaskService : ITaskService
             _logger.LogWarning("Task with id {TaskId} not found", id);
             throw new TaskDoesNotExistException(id);
         }
-            
+
         _dbContext.Tasks.Remove(taskToDelete);
         await _dbContext.SaveChangesAsync();
         return true;

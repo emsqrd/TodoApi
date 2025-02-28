@@ -18,6 +18,8 @@ public class TodoDbContext : DbContext
             entity.ToTable("Tasks");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired();
+            entity.Property(e => e.UpdateDate).IsRequired();
+            entity.Property(e => e.CreateDate).IsRequired();
         });
     }
 }
