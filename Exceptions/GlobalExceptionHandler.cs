@@ -7,20 +7,20 @@ namespace TodoApi.Exceptions;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
-  private readonly ILogger<GlobalExceptionHandler> _logger;
+	private readonly ILogger<GlobalExceptionHandler> _logger;
 
-  public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
-  {
+	public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
-  }
+	}
 
-  public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
-  {
+	public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+	{
 		_logger.LogError(exception, "An error occurred while processing your request");
 
 		var errorResponse = new ProblemDetails
 		{
-			Detail = exception.Message,
+			Detail = exception.InnerException?.Message ?? exception.Message,
 			Instance = httpContext.Request.Path,
 		};
 
@@ -47,5 +47,5 @@ public class GlobalExceptionHandler : IExceptionHandler
 		await httpContext.Response.WriteAsJsonAsync(errorResponse, cancellationToken);
 
 		return true;
-  }
+	}
 }
