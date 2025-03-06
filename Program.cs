@@ -10,6 +10,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 builder.AddApplicationServices();
+builder.Services.AddApplicationHealthChecks();
 
 var app = builder.Build();
 
@@ -39,6 +40,7 @@ app.MapGroup("/api")
 .MapTaskEndpoints()
 .MapOpenApi();
 
+app.MapApplicationHealthChecks();
 
 app.UseHttpsRedirection();
 app.Run();
