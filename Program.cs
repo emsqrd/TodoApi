@@ -8,8 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Logging.AddApplicationInsights();
+
+// Add Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.AddApplicationServices();
+builder.Services.AddApplicationHealthChecks();
 
 var app = builder.Build();
 
@@ -39,6 +44,7 @@ app.MapGroup("/api")
 .MapTaskEndpoints()
 .MapOpenApi();
 
+app.MapApplicationHealthChecks();
 
 app.UseHttpsRedirection();
 app.Run();
