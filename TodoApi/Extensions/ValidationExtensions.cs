@@ -8,7 +8,7 @@ public static class ValidationExtensions
     {
         if (obj == null) return false;
         var context = new ValidationContext(obj);
-        return Validate(obj, context).Count == 0;
+        return !Validate(obj, context).Any();
     }
 
     public static ICollection<ValidationResult> Validate(this object obj, ValidationContext context)
@@ -16,5 +16,24 @@ public static class ValidationExtensions
         var results = new List<ValidationResult>();
         Validator.TryValidateObject(obj, context, results, validateAllProperties: true);
         return results;
+    }
+
+    /// <summary>
+    /// Validates the object and returns a dictionary suitable for use with ValidationProblem
+    /// </summary>
+    public static Dictionary<string, string[]> GetValidationErrors(this object obj)
+    {
+        var context = new ValidationContext(obj);
+        var validationResults = Validate(obj, context);
+
+        if (!validationResults.Any())
+            return new Dictionary<string, string[]>();
+
+        return validationResults
+            .GroupBy(r => r.MemberNames.FirstOrDefault() ?? "")
+            .ToDictionary(
+                g => string.IsNullOrEmpty(g.Key) ? "Error" : g.Key,
+                g => g.Select(r => r.ErrorMessage ?? "Validation error occurred").ToArray()
+            );
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data;
 using TodoApi.Exceptions;
+using TodoApi.Extensions;
 using TodoApi.Models;
 
 namespace TodoApi.Services;
@@ -28,6 +29,7 @@ public sealed class TaskService : ITaskService
     {
         ArgumentNullException.ThrowIfNull(task, nameof(task));
 
+        // Validation should be handled at the endpoint level
         var newTask = new TaskItem
         {
             Name = task.Name,
@@ -66,14 +68,15 @@ public sealed class TaskService : ITaskService
 
     public async Task<bool> DeleteTaskAsync(Guid id)
     {
-        var taskToDelete = await _dbContext.Tasks.FirstOrDefaultAsync(task => task.Id == id);
-        if (taskToDelete is null)
+        var task = await _dbContext.Tasks.FindAsync(id);
+
+        if (task is null)
         {
             _logger.LogWarning("Task with id {TaskId} not found", id);
             throw new TaskDoesNotExistException(id);
         }
 
-        _dbContext.Tasks.Remove(taskToDelete);
+        _dbContext.Tasks.Remove(task);
         await _dbContext.SaveChangesAsync();
         return true;
     }

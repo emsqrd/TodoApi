@@ -5,6 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TodoApi.Exceptions;
 
+/// <summary>
+/// Handles global exceptions in the application
+/// </summary>
+/// <remarks>
+/// This handler is for unexpected errors and validation failures.
+/// Expected application errors that are part of normal API operation 
+/// (like 404 Not Found) should be handled at the endpoint level.
+/// </remarks>
 public class GlobalExceptionHandler : IExceptionHandler
 {
 	private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -26,13 +34,10 @@ public class GlobalExceptionHandler : IExceptionHandler
 
 		switch (exception)
 		{
-			case TaskDoesNotExistException:
-				errorResponse.Title = "Task does not exist";
-				errorResponse.Status = StatusCodes.Status404NotFound;
-				break;
-			case NoTaskFoundException:
-				errorResponse.Title = "Task not found";
-				errorResponse.Status = StatusCodes.Status404NotFound;
+			case ValidationException validationException:
+				errorResponse.Title = "Validation failed";
+				errorResponse.Status = StatusCodes.Status400BadRequest;
+				errorResponse.Extensions["errors"] = validationException.ValidationErrors;
 				break;
 			default:
 				errorResponse.Title = "An error occurred while processing your request";

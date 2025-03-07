@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.ComponentModel.DataAnnotations;
+using TodoApi.Exceptions;
 using TodoApi.Extensions;
 using TodoApi.Models;
 using TodoApi.Services;
@@ -35,7 +36,8 @@ public static class TaskEndpoints
             .WithOpenApi()
             .WithDescription("Updates a task")
             .Produces<TaskItem>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem();
 
         app.MapDelete("/tasks/{id}", DeleteTaskAsync)
             .WithName("DeleteTask")
@@ -49,14 +51,18 @@ public static class TaskEndpoints
 
     private static async Task<Results<Created<TaskItem>, ValidationProblem>> CreateTaskAsync(TaskItem task, ITaskService taskService)
     {
-        if (!task.IsValid())
+        if (task == null)
         {
-            var validationResults = task.Validate(new ValidationContext(task));
-            var errors = validationResults.ToDictionary(
-                vr => vr.MemberNames.First(),
-                vr => new[] { vr.ErrorMessage ?? "Validation failed" });
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { "task", new[] { "Task object cannot be null" } }
+            });
+        }
 
-            return TypedResults.ValidationProblem(errors);
+        var validationErrors = task.GetValidationErrors();
+        if (validationErrors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(validationErrors);
         }
 
         var result = await taskService.CreateTaskAsync(task);
@@ -69,15 +75,38 @@ public static class TaskEndpoints
         return TypedResults.Ok(results);
     }
 
-    private static async Task<Results<Ok<TaskItem>, NotFound<object>>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
+    private static async Task<Results<Ok<TaskItem>, NotFound<object>, ValidationProblem>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
     {
+        if (task == null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { "task", new[] { "Task object cannot be null" } }
+            });
+        }
+
+        var validationErrors = task.GetValidationErrors();
+        if (validationErrors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(validationErrors);
+        }
+
         if (id != task.Id)
         {
             task.Id = id;
         }
 
-        var result = await taskService.UpdateTaskAsync(task);
-        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound((object)new { error = "Task not found" });
+        try
+        {
+            var result = await taskService.UpdateTaskAsync(task);
+            return TypedResults.Ok(result);
+        }
+        catch (TaskDoesNotExistException)
+        {
+            // Create an anonymous object with proper casting to object
+            object errorObj = new { error = "Task not found" };
+            return TypedResults.NotFound(errorObj);
+        }
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService)
@@ -87,7 +116,18 @@ public static class TaskEndpoints
             return TypedResults.NotFound();
         }
 
-        var result = await taskService.DeleteTaskAsync(id);
-        return result ? TypedResults.NoContent() : TypedResults.NotFound();
+        try
+        {
+            var result = await taskService.DeleteTaskAsync(id);
+            if (result)
+            {
+                return TypedResults.NoContent();
+            }
+            return TypedResults.NotFound();
+        }
+        catch (TaskDoesNotExistException)
+        {
+            return TypedResults.NotFound();
+        }
     }
 }
