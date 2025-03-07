@@ -8,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Logging.AddApplicationInsights();
+
+// Add Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.AddApplicationServices();
 builder.Services.AddApplicationHealthChecks();
