@@ -13,7 +13,7 @@ namespace TodoApi.Migrations
 {
     [DbContext(typeof(TodoDbContext))]
     [Migration("20250227145621_add-desc-create-update-dates")]
-    partial class adddesccreateupdatedates
+    partial class AddDescCreateUpdateDates
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
