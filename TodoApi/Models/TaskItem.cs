@@ -1,3 +1,5 @@
+using TodoApi.Models.Validation;
+
 namespace TodoApi.Models;
 
 public sealed class TaskItem
@@ -9,8 +11,11 @@ public sealed class TaskItem
     }
 
     public Guid Id { get; set; }
-    public required string Name { get; set; }
-    public string Description { get; set; }
+
+    [TaskNameValidation]
+    public string Name { get; set; } = string.Empty;
+
+    public string Description { get; set; } = string.Empty;
     public DateTimeOffset? DueDate { get; set; }
     public DateTimeOffset UpdateDate { get; set; }
     public DateTimeOffset CreateDate { get; set; }

@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.ComponentModel.DataAnnotations;
+using TodoApi.Exceptions;
+using TodoApi.Extensions;
 using TodoApi.Models;
 using TodoApi.Services;
 
@@ -9,17 +12,10 @@ namespace TodoApi.Endpoints;
 /// </summary>
 public static class TaskEndpoints
 {
-    private static class ValidationMessages
-    {
-        public static readonly string[] TaskNull = ["Task object cannot be null"];
-        public static readonly string[] NameRequired = ["Task name is required"];
-        public static readonly string[] InvalidId = ["Invalid task ID"];
-    }
-
     /// <summary>
     /// Maps all task-related endpoints to the application
     /// </summary>
-    public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app) 
+    public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPost("/tasks", CreateTaskAsync)
             .WithName("CreateTask")
@@ -36,11 +32,12 @@ public static class TaskEndpoints
             .Produces(StatusCodes.Status400BadRequest);
 
         app.MapPut("/tasks/{id}", UpdateTaskAsync)
-            .WithName("UpdateTasks")
+            .WithName("UpdateTask")
             .WithOpenApi()
             .WithDescription("Updates a task")
             .Produces<TaskItem>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem();
 
         app.MapDelete("/tasks/{id}", DeleteTaskAsync)
             .WithName("DeleteTask")
@@ -51,54 +48,86 @@ public static class TaskEndpoints
 
         return app;
     }
-    private static async Task<Results<Created<TaskItem>, ValidationProblem>> CreateTaskAsync(TaskItem task, ITaskService taskService) 
+
+    private static async Task<Results<Created<TaskItem>, ValidationProblem>> CreateTaskAsync(TaskItem task, ITaskService taskService)
     {
         if (task == null)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                { "task", ValidationMessages.TaskNull }
+                { "task", new[] { "Task object cannot be null" } }
             });
         }
 
-        if (string.IsNullOrWhiteSpace(task.Name))
+        var validationErrors = task.GetValidationErrors();
+        if (validationErrors.Count > 0)
         {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                { "name", ValidationMessages.NameRequired }
-            });
+            return TypedResults.ValidationProblem(validationErrors);
         }
 
         var result = await taskService.CreateTaskAsync(task);
         return TypedResults.Created($"/tasks/{result.Id}", result);
     }
 
-    private static async Task<Results<Ok<IEnumerable<TaskItem>>, BadRequest>> GetTasksAsync(ITaskService taskService) 
+    private static async Task<Results<Ok<IEnumerable<TaskItem>>, BadRequest>> GetTasksAsync(ITaskService taskService)
     {
         var results = await taskService.GetTasksAsync();
         return TypedResults.Ok(results);
     }
 
-    private static async Task<Results<Ok<TaskItem>, NotFound<object>>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
-    {   
+    private static async Task<Results<Ok<TaskItem>, NotFound<object>, ValidationProblem>> UpdateTaskAsync(Guid id, TaskItem task, ITaskService taskService)
+    {
+        if (task == null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { "task", new[] { "Task object cannot be null" } }
+            });
+        }
+
+        var validationErrors = task.GetValidationErrors();
+        if (validationErrors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(validationErrors);
+        }
+
         if (id != task.Id)
         {
             task.Id = id;
         }
 
-        var result = await taskService.UpdateTaskAsync(task);
-        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound((object)new { error = "Task not found"});
-
+        try
+        {
+            var result = await taskService.UpdateTaskAsync(task);
+            return TypedResults.Ok(result);
+        }
+        catch (TaskDoesNotExistException)
+        {
+            // Create an anonymous object with proper casting to object
+            object errorObj = new { error = "Task not found" };
+            return TypedResults.NotFound(errorObj);
+        }
     }
 
-    private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService) 
+    private static async Task<Results<NoContent, NotFound>> DeleteTaskAsync(Guid id, ITaskService taskService)
     {
         if (id == Guid.Empty)
         {
             return TypedResults.NotFound();
         }
 
-        var result = await taskService.DeleteTaskAsync(id);
-        return result ? TypedResults.NoContent() : TypedResults.NotFound();
+        try
+        {
+            var result = await taskService.DeleteTaskAsync(id);
+            if (result)
+            {
+                return TypedResults.NoContent();
+            }
+            return TypedResults.NotFound();
+        }
+        catch (TaskDoesNotExistException)
+        {
+            return TypedResults.NotFound();
+        }
     }
 }
